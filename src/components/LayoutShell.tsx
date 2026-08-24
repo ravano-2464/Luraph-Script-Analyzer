@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Shield, LayoutDashboard, UploadCloud, LogOut, User, Menu, X, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ToastContext';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [username, setUsername] = useState('Developer');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const cachedUser = localStorage.getItem('user');
@@ -31,10 +34,12 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       await fetch('/api/auth/logout', { method: 'POST' });
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      showToast('Logged out successfully. See you again!', 'info');
       router.push('/login');
       router.refresh();
     } catch (e) {
       console.error('Logout failed:', e);
+      showToast('Logout failed. Please try again.', 'error');
     }
   };
 
@@ -87,7 +92,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             </div>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-rose-500/30 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 text-sm font-semibold transition active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4" />
@@ -185,7 +190,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
               <div className="p-4 border-t border-slate-800">
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-rose-500/30 hover:bg-rose-500/10 text-rose-400 text-sm font-semibold transition"
                 >
                   <LogOut className="w-4 h-4" />
@@ -194,6 +199,49 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               </div>
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-2xl border border-slate-800 bg-[#0a0d20] p-6 shadow-2xl relative"
+            >
+              <div className="flex items-center gap-3 text-rose-400 mb-4">
+                <div className="p-2 bg-rose-500/20 rounded-lg border border-rose-500/20">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-white text-base">Confirm Log Out</h3>
+              </div>
+              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                Are you sure you want to log out of your auditor session? You will need to sign in again to access the studio.
+              </p>
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="px-4 py-2 rounded-lg text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition text-sm font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    handleLogout();
+                  }}
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition text-sm font-semibold cursor-pointer"
+                >
+                  Log Out
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

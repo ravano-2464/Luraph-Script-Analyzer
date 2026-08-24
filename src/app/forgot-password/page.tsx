@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Key, ArrowRight, AlertCircle, Loader, Mail, HelpCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/components/ToastContext';
 
 function ForgotPasswordContent() {
   const router = useRouter();
+  const { showToast } = useToast();
   const searchParams = useSearchParams();
   const username = searchParams.get('username') || '';
   const method = searchParams.get('method') || 'pin'; // 'pin' or 'question'
@@ -73,6 +75,7 @@ function ForgotPasswordContent() {
       }
 
       setPinSent(true);
+      showToast('Recovery PIN has been generated and sent to email!', 'success');
       if (data.simulation) {
         setSimulatedEmail({
           email: data.simulation.email,
@@ -82,6 +85,7 @@ function ForgotPasswordContent() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -95,6 +99,7 @@ function ForgotPasswordContent() {
       return;
     }
     // Forward to reset password page with username and token
+    showToast('PIN verified. Forwarding to reset screen...', 'success');
     router.push(`/reset-password?username=${encodeURIComponent(username)}&token=${encodeURIComponent(pin)}`);
   };
 
@@ -106,6 +111,7 @@ function ForgotPasswordContent() {
       return;
     }
     // Forward to reset password page with username and answer
+    showToast('Answer verified. Forwarding to reset screen...', 'success');
     router.push(`/reset-password?username=${encodeURIComponent(username)}&answer=${encodeURIComponent(securityAnswer)}`);
   };
 

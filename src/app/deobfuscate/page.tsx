@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import LayoutShell from '@/components/LayoutShell';
 import Editor from '@monaco-editor/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ToastContext';
+import { motion } from 'framer-motion';
 import {
   Code, Wand2, ShieldAlert, Sparkles, Terminal, FileCode2,
   Copy, Download, Play, CheckCircle2, AlertTriangle, RefreshCw,
-  Search, ShieldCheck, HelpCircle, Link as LinkIcon
+  ShieldCheck, HelpCircle, Upload, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface DecryptedConstant {
@@ -30,9 +31,42 @@ interface LuraphResult {
 
 export default function LuraphDeobfuscator() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [obfuscatedCode, setObfuscatedCode] = useState('');
   const [translatedCode, setTranslatedCode] = useState('');
   const [result, setResult] = useState<LuraphResult | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const tabHeaderRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabHeaderRef.current) {
+      const scrollAmount = 200;
+      tabHeaderRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setObfuscatedCode(event.target.result as string);
+          setError('');
+          showToast(`File "${file.name}" uploaded successfully!`, 'success');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
   
   // Loading & State
   const [translating, setTranslating] = useState(false);
@@ -74,6 +108,7 @@ export default function LuraphDeobfuscator() {
       `end)()\n`;
     setObfuscatedCode(sample);
     setError('');
+    showToast('Loaded obfuscated sample script!', 'success');
   };
 
   const handleTranslate = async () => {
@@ -101,8 +136,11 @@ export default function LuraphDeobfuscator() {
 
       setResult(data.result);
       setTranslatedCode(data.result.reconstructedCode);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during translation pipeline execution.');
+      showToast('Script deobfuscated successfully!', 'success');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred during translation pipeline execution.';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setTranslating(false);
     }
@@ -111,12 +149,14 @@ export default function LuraphDeobfuscator() {
   const handleCopyInput = () => {
     navigator.clipboard.writeText(obfuscatedCode);
     setCopiedInput(true);
+    showToast('Copied obfuscated code to clipboard!', 'info');
     setTimeout(() => setCopiedInput(false), 2000);
   };
 
   const handleCopyOutput = () => {
     navigator.clipboard.writeText(translatedCode);
     setCopiedOutput(true);
+    showToast('Copied reconstructed code to clipboard!', 'info');
     setTimeout(() => setCopiedOutput(false), 2000);
   };
 
@@ -128,6 +168,7 @@ export default function LuraphDeobfuscator() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    showToast('Reconstructed script downloaded successfully!', 'success');
   };
 
   const handleSaveAndAudit = async () => {
@@ -150,9 +191,12 @@ export default function LuraphDeobfuscator() {
       }
 
       // Redirect to full AST analysis
+      showToast('Script saved. Redirecting to security audit panel...', 'success');
       router.push(`/analysis/${data.scriptId}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save script for auditing.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save script for auditing.';
+      setError(message);
+      showToast(message, 'error');
       setSavingAudit(false);
     }
   };
@@ -200,16 +244,32 @@ export default function LuraphDeobfuscator() {
                 <Code className="w-4 h-4 text-indigo-400" />
                 Obfuscated Luraph Script
               </span>
-              <button
-                onClick={handleCopyInput}
-                disabled={!obfuscatedCode}
-                className="p-1.5 hover:bg-slate-900 rounded-lg text-slate-400 hover:text-white transition disabled:opacity-40"
-                title="Copy Code"
-              >
-                {copiedInput ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={triggerFileUpload}
+                  className="p-1.5 hover:bg-slate-900 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+                  title="Upload Lua File"
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleCopyInput}
+                  disabled={!obfuscatedCode}
+                  className="p-1.5 hover:bg-slate-900 rounded-lg text-slate-400 hover:text-white transition disabled:opacity-40"
+                  title="Copy Code"
+                >
+                  {copiedInput ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-            <div className="flex-1 min-h-0 bg-slate-950/60">
+            <div className="flex-1 min-h-0 bg-slate-950/60 relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileUpload}
+                accept=".lua,.txt"
+                className="hidden"
+              />
               <Editor
                 height="100%"
                 language="lua"
@@ -352,35 +412,56 @@ export default function LuraphDeobfuscator() {
             className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-md"
           >
             {/* Tabs Selector Header */}
-            <div className="flex border-b border-slate-800 mb-6 gap-2">
-              {[
-                { id: 'strings', label: 'Decrypted Strings Pool', icon: Terminal, count: result.strings.length },
-                { id: 'signatures', label: 'VM Signature Audit', icon: ShieldAlert, count: result.matchedSignatures.length },
-                { id: 'logs', label: 'Decompiler Trace Logs', icon: HelpCircle, count: result.logs.length },
-                { id: 'numbers', label: 'Numerical Op-Codes', icon: Code, count: result.numbers.length },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider transition ${
-                      isActive
-                        ? 'border-indigo-500 text-white bg-indigo-500/5'
-                        : 'border-transparent text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                    {tab.count > 0 && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-slate-800 text-[10px] text-slate-300 font-bold border border-slate-700/80">
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            <div className="relative flex items-center border-b border-slate-800 mb-6 bg-[#0a0d20]/50 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => scrollTabs('left')}
+                className="flex items-center justify-center w-8 h-12 text-slate-500 hover:text-slate-200 hover:bg-slate-900/30 border-r border-slate-800 transition shrink-0 cursor-pointer focus:outline-none"
+                title="Scroll Left"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div
+                ref={tabHeaderRef}
+                className="flex-1 flex overflow-x-auto whitespace-nowrap scrollbar-thin scroll-smooth p-1 gap-2"
+              >
+                {[
+                  { id: 'strings', label: 'Decrypted Strings Pool', icon: Terminal, count: result.strings.length },
+                  { id: 'signatures', label: 'VM Signature Audit', icon: ShieldAlert, count: result.matchedSignatures.length },
+                  { id: 'logs', label: 'Decompiler Trace Logs', icon: HelpCircle, count: result.logs.length },
+                  { id: 'numbers', label: 'Numerical Op-Codes', icon: Code, count: result.numbers.length },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer select-none ${
+                        isActive
+                          ? 'border-indigo-500 text-white bg-indigo-500/5'
+                          : 'border-transparent text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {tab.label}
+                      {tab.count > 0 && (
+                        <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-slate-800 text-[10px] text-slate-300 font-bold border border-slate-700/80">
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => scrollTabs('right')}
+                className="flex items-center justify-center w-8 h-12 text-slate-500 hover:text-slate-200 hover:bg-slate-900/30 border-l border-slate-800 transition shrink-0 cursor-pointer focus:outline-none"
+                title="Scroll Right"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Tab Contents View */}

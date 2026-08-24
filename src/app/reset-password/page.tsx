@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Key, Eye, EyeOff, Loader, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ToastContext';
 
 function ResetPasswordContent() {
   const router = useRouter();
+  const { showToast } = useToast();
   const searchParams = useSearchParams();
   const username = searchParams.get('username') || '';
   const token = searchParams.get('token') || null;
@@ -49,7 +51,7 @@ function ResetPasswordContent() {
     setLoading(true);
 
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, string | null> = {
         username,
         newPassword
       };
@@ -70,9 +72,11 @@ function ResetPasswordContent() {
       }
 
       setSuccess(true);
+      showToast('Password reset successfully! You can now log in with your new credentials.', 'success');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred during password reset';
       setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }

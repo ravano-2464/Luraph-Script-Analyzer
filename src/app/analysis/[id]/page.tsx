@@ -11,7 +11,7 @@ import '@xyflow/react/dist/style.css';
 import {
   ShieldAlert, Code, Network, Database, Terminal, FileSpreadsheet,
   Workflow, GitGraph, FileText, Play, ServerCrash, RefreshCw,
-  AlertTriangle, CheckCircle, Search, ChevronRight, ShieldCheck
+  AlertTriangle, CheckCircle, Search, ChevronLeft, ChevronRight, ShieldCheck, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -128,11 +128,23 @@ export default function AnalysisStudio() {
   const { id } = useParams() as { id: string };
   const editorRef = useRef<MonacoEditorInstance | null>(null);
   const monacoRef = useRef<MonacoInstance | null>(null);
+  const tabHeaderRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabHeaderRef.current) {
+      const scrollAmount = 200;
+      tabHeaderRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // States
   const [script, setScript] = useState<ScriptData | null>(null);
   const [activeTab, setActiveTab] = useState<'obfuscation' | 'security' | 'strings' | 'functions' | 'controlFlow' | 'ast' | 'sandbox' | 'dependencies' | 'metrics'>('obfuscation');
   const [loading, setLoading] = useState(true);
+  const [isStringFilterOpen, setIsStringFilterOpen] = useState(false);
 
   // Detailed analysis category lists
   const [functions, setFunctions] = useState<FunctionData[]>([]);
@@ -360,35 +372,56 @@ export default function AnalysisStudio() {
         {/* Right Side: Multi-Panel Tab Section */}
         <div className="flex flex-col border border-slate-800 bg-[#070915] rounded-2xl overflow-hidden shadow-2xl">
           {/* Tab Navigation header */}
-          <div className="flex border-b border-slate-800 bg-[#0a0d20]/50 overflow-x-auto whitespace-nowrap scrollbar-thin">
-            {[
-              { id: 'obfuscation', label: 'Obfuscation', icon: AlertTriangle },
-              { id: 'security', label: 'Security Warnings', icon: ShieldAlert },
-              { id: 'strings', label: 'String Literals', icon: FileSpreadsheet },
-              { id: 'functions', label: 'Functions Table', icon: Code },
-              { id: 'controlFlow', label: 'Control Flow', icon: GitGraph },
-              { id: 'ast', label: 'AST Explorer', icon: Workflow },
-              { id: 'sandbox', label: 'Sandbox Monitor', icon: Terminal },
-              { id: 'dependencies', label: 'Dependencies', icon: Database },
-              { id: 'metrics', label: 'Metrics', icon: Network },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`flex items-center gap-2 px-5 h-12 text-xs font-semibold border-b-2 transition select-none ${
-                    isActive
-                      ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-                      : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="relative flex items-center border-b border-slate-800 bg-[#0a0d20]/50 shrink-0">
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              className="flex items-center justify-center w-8 h-12 text-slate-500 hover:text-slate-200 hover:bg-slate-900/30 border-r border-slate-800 transition shrink-0 cursor-pointer focus:outline-none"
+              title="Scroll Left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div
+              ref={tabHeaderRef}
+              className="flex-1 flex overflow-x-auto whitespace-nowrap scrollbar-thin scroll-smooth"
+            >
+              {[
+                { id: 'obfuscation', label: 'Obfuscation', icon: AlertTriangle },
+                { id: 'security', label: 'Security Warnings', icon: ShieldAlert },
+                { id: 'strings', label: 'String Literals', icon: FileSpreadsheet },
+                { id: 'functions', label: 'Functions Table', icon: Code },
+                { id: 'controlFlow', label: 'Control Flow', icon: GitGraph },
+                { id: 'ast', label: 'AST Explorer', icon: Workflow },
+                { id: 'sandbox', label: 'Sandbox Monitor', icon: Terminal },
+                { id: 'dependencies', label: 'Dependencies', icon: Database },
+                { id: 'metrics', label: 'Metrics', icon: Network },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    className={`flex items-center gap-2 px-5 h-12 text-xs font-semibold border-b-2 transition select-none cursor-pointer ${
+                      isActive
+                        ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
+                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              className="flex items-center justify-center w-8 h-12 text-slate-500 hover:text-slate-200 hover:bg-slate-900/30 border-l border-slate-800 transition shrink-0 cursor-pointer focus:outline-none"
+              title="Scroll Right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Panel Body Content View */}
@@ -521,20 +554,31 @@ export default function AnalysisStudio() {
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
                     />
                   </div>
-                  <select
-                    value={stringFilter}
-                    onChange={(e) => setStringFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none"
-                  >
-                    <option value="ALL">All Categories</option>
-                    <option value="URL">URLs</option>
-                    <option value="IP">IPs</option>
-                    <option value="Path">File Paths</option>
-                    <option value="APIEndpoint">API Endpoints</option>
-                    <option value="Encoded">Encoded strings</option>
-                    <option value="ErrorMessage">Error Messages</option>
-                    <option value="Normal">Normal Text</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={stringFilter}
+                      onChange={(e) => {
+                        setStringFilter(e.target.value);
+                        setIsStringFilterOpen(false);
+                        (e.target as HTMLSelectElement).blur();
+                      }}
+                      onFocus={() => setIsStringFilterOpen(true)}
+                      onBlur={() => setIsStringFilterOpen(false)}
+                      className="pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="ALL">All Categories</option>
+                      <option value="URL">URLs</option>
+                      <option value="IP">IPs</option>
+                      <option value="Path">File Paths</option>
+                      <option value="APIEndpoint">API Endpoints</option>
+                      <option value="Encoded">Encoded strings</option>
+                      <option value="ErrorMessage">Error Messages</option>
+                      <option value="Normal">Normal Text</option>
+                    </select>
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                      {isStringFilterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/20 max-h-[400px] overflow-y-auto">

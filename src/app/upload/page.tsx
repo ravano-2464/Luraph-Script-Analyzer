@@ -3,7 +3,8 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import LayoutShell from '@/components/LayoutShell';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useToast } from '@/components/ToastContext';
 import {
   Upload, Terminal, FileCode2, Info, ArrowRight,
   Loader, CheckCircle2, AlertCircle, FileType
@@ -11,6 +12,7 @@ import {
 
 export default function UploadPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [filename, setFilename] = useState('');
   const [content, setContent] = useState('');
   const [customLanguage, setCustomLanguage] = useState('auto');
@@ -59,6 +61,7 @@ export default function UploadPage() {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'js' && ext !== 'lua' && ext !== 'txt') {
       setError('Only .js and .lua script files are supported.');
+      showToast('Unsupported file type. Only JS and Lua scripts are supported.', 'error');
       return;
     }
 
@@ -69,6 +72,7 @@ export default function UploadPage() {
     reader.onload = (event) => {
       if (event.target?.result) {
         setContent(event.target.result as string);
+        showToast(`Loaded file "${file.name}"!`, 'success');
       }
     };
     reader.readAsText(file);
@@ -118,15 +122,18 @@ export default function UploadPage() {
 
       clearInterval(interval);
       setStep(stepsList.length - 1); // Finished step
+      showToast('Static analysis pipeline completed successfully!', 'success');
 
       // Delay briefly for visual satisfaction before navigating
       setTimeout(() => {
         router.push(`/analysis/${data.scriptId}`);
       }, 600);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearInterval(interval);
-      setError(err.message || 'An error occurred during static analysis execution.');
+      const message = err instanceof Error ? err.message : 'An error occurred during static analysis execution.';
+      setError(message);
+      showToast(message, 'error');
       setUploading(false);
     }
   };

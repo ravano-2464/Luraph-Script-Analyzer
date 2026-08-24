@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Shield, Key, User, ArrowRight, AlertCircle, Loader, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/components/ToastContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,11 +38,13 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
 
+      showToast(`Welcome back, ${data.user.username}!`, 'success');
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred during login';
       setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }

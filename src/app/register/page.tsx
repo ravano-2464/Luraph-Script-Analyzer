@@ -4,16 +4,19 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Key, User, ArrowRight, AlertCircle, Loader, Eye, EyeOff, Mail, HelpCircle } from 'lucide-react';
+import { Shield, Key, User, ArrowRight, AlertCircle, Loader, Eye, EyeOff, Mail, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useToast } from '@/components/ToastContext';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [securityQuestion, setSecurityQuestion] = useState('');
   const [securityAnswer, setSecurityAnswer] = useState('');
+  const [isQuestionSelectOpen, setIsQuestionSelectOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -46,11 +49,13 @@ export default function RegisterPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
 
+      showToast(`Account "${data.user.username}" created successfully!`, 'success');
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred during registration';
       setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -123,8 +128,14 @@ export default function RegisterPage() {
               <HelpCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <select
                 value={securityQuestion}
-                onChange={(e) => setSecurityQuestion(e.target.value)}
-                className="w-full pl-10 pr-8 py-2.5 bg-slate-950/60 border border-slate-800 rounded-lg text-slate-300 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition appearance-none"
+                onChange={(e) => {
+                  setSecurityQuestion(e.target.value);
+                  setIsQuestionSelectOpen(false);
+                  (e.target as HTMLSelectElement).blur();
+                }}
+                onFocus={() => setIsQuestionSelectOpen(true)}
+                onBlur={() => setIsQuestionSelectOpen(false)}
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-950/60 border border-slate-800 rounded-lg text-slate-300 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition appearance-none cursor-pointer"
               >
                 <option value="" className="bg-slate-950 text-slate-500">No Security Question</option>
                 <option value="What is the name of your first pet?" className="bg-slate-950">What is the name of your first pet?</option>
@@ -132,6 +143,9 @@ export default function RegisterPage() {
                 <option value="In what city were you born?" className="bg-slate-950">In what city were you born?</option>
                 <option value="What is your favorite book/movie?" className="bg-slate-950">What is your favorite book/movie?</option>
               </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                {isQuestionSelectOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
             </div>
           </div>
 

@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Search, User, ArrowRight, AlertCircle, Loader, CheckCircle, HelpCircle, Mail } from 'lucide-react';
+import { useToast } from '@/components/ToastContext';
 
 export default function FindAccountPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,9 +40,11 @@ export default function FindAccountPage() {
       }
 
       setFoundUser(data.user);
+      showToast('Account located successfully!', 'success');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred while looking up account';
       setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
