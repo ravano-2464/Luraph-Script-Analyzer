@@ -31,6 +31,19 @@ This application parses target scripts into Abstract Syntax Trees (ASTs), execut
 ## 📂 Project Structure
 
 ```
+├── 📁 .agents
+├── 📁 .claude
+├── 📁 .windsurf
+│   └── 📁 skills
+│       ├── 📄 prisma-cli
+│       ├── 📄 prisma-client-api
+│       ├── 📄 prisma-compute
+│       ├── 📄 prisma-database-setup
+│       ├── 📄 prisma-driver-adapter-implementation
+│       ├── 📄 prisma-mongodb-upgrade
+│       ├── 📄 prisma-postgres
+│       ├── 📄 prisma-postgres-setup
+│       └── 📄 prisma-upgrade-v7
 ├── 📁 generated
 │   └── 📁 prisma
 │       ├── 📁 internal
@@ -117,8 +130,7 @@ This application parses target scripts into Abstract Syntax Trees (ASTs), execut
 │   │   ├── 📄 layout.tsx
 │   │   └── 📄 page.tsx
 │   ├── 📁 components
-│   │   ├── 📄 LayoutShell.tsx
-│   │   └── 📄 ToastContext.tsx
+│   │   └── 📄 LayoutShell.tsx
 │   ├── 📁 lib
 │   │   ├── 📁 analyzer
 │   │   │   ├── 📄 control-flow.ts
