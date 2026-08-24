@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id               String   @id @default(uuid())
+  username         String   @unique
+  passwordHash     String
+  email            String?
+  securityQuestion String?
+  securityAnswer   String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  role             String   @default("USER") // "ADMIN", "USER"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  scripts          Script[]
+}
+
+model Script {
+  id         String     @id @default(uuid())
+  filename   String
+  content    String
+  fileSize   Int
+  language   String     // "js" | "lua"
+  hash       String     // SHA-256 or MD5 hash of content
+  complexity String     // "Low" | "Medium" | "High"
+  status     String     // "PENDING" | "ANALYZING" | "COMPLETED" | "FAILED"
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  analyses   Analysis[]
+}
+
+model Analysis {
+  id               String            @id @default(uuid())
+  scriptId         String
+  script           Script            @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  obfuscationScore Int
+  riskScore        Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  functions        Function[]
+  strings          StringLiteral[]
+  dependencies     Dependency[]
+  networkEvents    NetworkEvent[]
+  securityFindings SecurityFinding[]
+  metrics          Metric?
+  logs             AnalysisLog[]
+}
+
+model Function {
+  id                   String   @id @default(uuid())
+  analysisId           String
+  analysis             Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  name                 String
+  params               String   // Comma-separated list of parameter names
+  startLine            Int
+  endLine              Int
+  cyclomaticComplexity Int
+  callCount            Int      @default(0)
+  riskScore            Int      @default(0)
+  sourceCode           String?
+}
+
+model StringLiteral {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  value      String
+  category   String   // "URL" | "IP" | "Path" | "APIEndpoint" | "Encoded" | "Normal" | "ErrorMessage"
+  confidence Int?     // Percentage confidence for encoded strings (0-100)
+  line       Int?
+  column     Int?
+}
+
+model Dependency {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  name       String
+  type       String   // "External" | "Internal" | "BrowserAPI" | "NodeAPI" | "Unknown"
+}
+
+model NetworkEvent {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  url        String
+  method     String?  // "GET" | "POST" | etc.
+  type       String   // "fetch" | "xhr" | "websocket" | "http_library"
+  line       Int?
+}
+
+model SecurityFinding {
+  id           String   @id @default(uuid())
+  analysisId   String
+  analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  severity     String   // "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO"
+  category     String
+  message      String
+  line         Int?
+  codeSnippet  String?
+}
+
+model Metric {
+  id                   String   @id @default(uuid())
+  analysisId           String   @unique
+  analysis             Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  loc                  Int
+  functionCount        Int
+  variableCount        Int
+  stringCount          Int
+  branchCount          Int
+  loopCount            Int
+  cyclomaticComplexity Int
+  maxNestingDepth      Int
+}
+
+model AnalysisLog {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  event      String
+  timestamp  DateTime @default(now())
+}
