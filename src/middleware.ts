@@ -9,6 +9,9 @@ export function middleware(request: NextRequest) {
   const isPublicPath =
     pathname === '/login' ||
     pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/find-account' ||
+    pathname === '/reset-password' ||
     pathname.startsWith('/api/auth');
 
   // If path requires auth and no token exists, redirect to login
