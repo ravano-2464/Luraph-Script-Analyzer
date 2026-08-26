@@ -121,7 +121,7 @@ export default function LoginPage() {
 
           <div className="flex items-center justify-end text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
             <Link href="/find-account">
-              Forgot Password / Find Account
+              Find Account
             </Link>
           </div>
 
